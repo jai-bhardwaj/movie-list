@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background: #0a0a0f;
+  color: #f0eee8;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Drag styles */
+.dragging { opacity: 0.4; }
+.drag-over { border-top: 2px solid #e8c46a !important; }
