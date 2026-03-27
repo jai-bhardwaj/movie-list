@@ -604,7 +604,7 @@
     }
   }
 
-  // --- Render ---
+  // --- Render (full rebuild â only used on initial load, add, filter change) ---
   function render() {
     const list = document.getElementById('movie-list');
     list.innerHTML = '';
@@ -618,6 +618,7 @@
       const item = document.createElement('div');
       item.className = 'movie-item' + (m.watched ? ' watched' : '') + (hide ? ' hidden' : '');
       item.style.animationDelay = `${i * 0.04}s`;
+      item.dataset.index = i;
       item.onclick = () => toggle(i);
 
       const watchedStr = m.watchedAt
@@ -637,12 +638,43 @@
     updateStats();
   }
 
-  // --- Toggle watched ---
+  // --- Update a single movie item in-place (no full re-render) ---
+  function updateItem(i) {
+    const list = document.getElementById('movie-list');
+    const item = list.children[i];
+    if (!item) return;
+
+    const m = movies[i];
+    const hide =
+      (currentFilter === 'watched' && !m.watched) ||
+      (currentFilter === 'unwatched' && m.watched) ||
+      (currentFilter === 'horror' && !m.horror);
+
+    // Toggle classes without rebuilding the element
+    item.classList.toggle('watched', m.watched);
+    item.classList.toggle('hidden', hide);
+
+    // Update checkbox
+    const checkbox = item.querySelector('.checkbox');
+    if (checkbox) checkbox.textContent = m.watched ? 'â' : '';
+
+    // Update watched time
+    const timeEl = item.querySelector('.watched-time');
+    if (timeEl) {
+      timeEl.textContent = m.watchedAt
+        ? new Date(m.watchedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : '';
+    }
+
+    updateStats();
+  }
+
+  // --- Toggle watched (targeted update, no flicker) ---
   async function toggle(i) {
     // Optimistic UI update
     movies[i].watched = !movies[i].watched;
     movies[i].watchedAt = movies[i].watched ? new Date().toISOString() : null;
-    render();
+    updateItem(i);
 
     try {
       setSyncStatus("syncing", "saving...");
@@ -654,7 +686,7 @@
       // Revert on failure
       movies[i].watched = !movies[i].watched;
       movies[i].watchedAt = movies[i].watched ? new Date().toISOString() : null;
-      render();
+      updateItem(i);
     }
   }
 
@@ -713,13 +745,27 @@
     btn.disabled = false;
   }
 
-  // --- Auto-refresh from sheet every 15 seconds ---
+  // --- Auto-refresh from sheet every 15 seconds (smart diff) ---
   setInterval(async () => {
     try {
       const data = await apiFetch();
       if (data && data.length > 0) {
-        movies = data;
-        render();
+        // If list length changed, full re-render
+        if (data.length !== movies.length) {
+          movies = data;
+          render();
+        } else {
+          // Only update items that actually changed
+          let anyChanged = false;
+          data.forEach((m, i) => {
+            if (m.watched !== movies[i].watched || m.title !== movies[i].title) {
+              movies[i] = m;
+              updateItem(i);
+              anyChanged = true;
+            }
+          });
+          if (!anyChanged) movies = data; // silent update of metadata
+        }
         setSyncStatus("synced", "live");
       }
     } catch (e) {
