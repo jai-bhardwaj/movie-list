@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ð¬ Movie Night List</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --card: #1a1a26;
+      --border: #2a2a3d;
+      --gold: #e8c46a;
+      --gold-dim: #a88c48;
+      --red: #e85d4a;
+      --green: #4ae8a0;
+      --text: #f0eee8;
+      --muted: #7a7a9a;
+      --horror: #c44ae8;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.4;
+    }
+
+    header {
+      padding: 60px 40px 40px;
+      max-width: 860px;
+      margin: 0 auto;
+      animation: fadeDown 0.8s ease both;
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 16px;
+      opacity: 0.8;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(42px, 7vw, 80px);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--gold);
+    }
+
+    .subtitle {
+      margin-top: 18px;
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    .sync-status {
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 2px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      transition: all 0.3s;
+    }
+
+    .sync-status.synced {
+      color: var(--green);
+      border: 1px solid rgba(74,232,160,0.3);
+      background: rgba(74,232,160,0.08);
+    }
+
+    .sync-status.syncing {
+      color: var(--gold);
+      border: 1px solid rgba(232,196,106,0.3);
+      background: rgba(232,196,106,0.08);
+    }
+
+    .sync-status.offline {
+      color: var(--red);
+      border: 1px solid rgba(232,93,74,0.3);
+      background: rgba(232,93,74,0.08);
+    }
+
+    .stats {
+      display: flex;
+      gap: 32px;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-num {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--gold);
+      transition: all 0.3s;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* Controls */
+    .controls {
+      max-width: 860px;
+      margin: 0 auto 32px;
+      padding: 0 40px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      animation: fadeUp 0.8s 0.2s ease both;
+    }
+
+    .filter-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 8px 18px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-radius: 2px;
+    }
+
+    .filter-btn:hover,
+    .filter-btn.active {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: rgba(232,196,106,0.05);
+    }
+
+    /* Progress bar */
+    .progress-bar-wrap {
+      max-width: 860px;
+      margin: 0 auto 40px;
+      padding: 0 40px;
+      animation: fadeUp 0.8s 0.3s ease both;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .progress-track {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+      border-radius: 2px;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Movie list */
+    .list {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 40px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .movie-item {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 18px 24px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid transparent;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      user-select: none;
+      animation: fadeUp 0.5s ease both;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .movie-item::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(232,196,106,0.03), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .movie-item:hover::before { opacity: 1; }
+
+    .movie-item:hover {
+      border-color: var(--gold-dim);
+      border-left-color: var(--gold);
+      transform: translateX(4px);
+    }
+
+    .movie-item.watched {
+      border-left-color: var(--green);
+      opacity: 0.7;
+    }
+
+    .movie-item.watched .movie-title {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
+    .movie-item.hidden { display: none; }
+
+    .movie-item.saving {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .checkbox {
+      width: 20px;
+      height: 20px;
+      border: 1.5px solid var(--border);
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.25s;
+      font-size: 12px;
+    }
+
+    .movie-item.watched .checkbox {
+      background: var(--green);
+      border-color: var(--green);
+      color: #0a0a0f;
+    }
+
+    .movie-num {
+      font-size: 11px;
+      color: var(--border);
+      width: 24px;
+      flex-shrink: 0;
+      text-align: right;
+      font-weight: 500;
+    }
+
+    .movie-title {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      transition: color 0.2s;
+    }
+
+    .tag {
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .tag-horror {
+      background: rgba(196,74,232,0.15);
+      color: var(--horror);
+      border: 1px solid rgba(196,74,232,0.3);
+    }
+
+    .watched-time {
+      font-size: 10px;
+      color: var(--muted);
+      flex-shrink: 0;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .movie-item.watched .watched-time { opacity: 1; }
+
+    /* Add movie form */
+    .add-section {
+      max-width: 860px;
+      margin: 0 auto 0;
+      padding: 0 40px 40px;
+      animation: fadeUp 0.8s 0.5s ease both;
+    }
+
+    .add-form {
+      display: flex;
+      gap: 8px;
+      border: 1px solid var(--border);
+      padding: 6px 6px 6px 20px;
+      background: var(--card);
+      transition: border-color 0.2s;
+    }
+
+    .add-form:focus-within {
+      border-color: var(--gold-dim);
+    }
+
+    .add-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      letter-spacing: 0.03em;
+    }
+
+    .add-input::placeholder { color: var(--muted); }
+
+    .horror-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0 12px;
+      border-left: 1px solid var(--border);
+      transition: color 0.2s;
+      white-space: nowrap;
+    }
+
+    .horror-toggle input { display: none; }
+
+    .horror-toggle.active { color: var(--horror); }
+
+    .add-btn {
+      background: var(--gold);
+      color: #0a0a0f;
+      border: none;
+      padding: 10px 20px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .add-btn:hover {
+      background: #f0d07a;
+      transform: translateY(-1px);
+    }
+
+    .add-btn:active { transform: translateY(0); }
+
+    .add-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Divider line */
+    .section-divider {
+      max-width: 860px;
+      margin: 0 auto 28px;
+      padding: 0 40px;
+    }
+
+    .section-divider hr {
+      border: none;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Loading state */
+    .loading-msg {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 60px 20px;
+      letter-spacing: 0.1em;
+    }
+
+    .loading-msg .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Animations */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes popIn {
+      0% { opacity: 0; transform: translateX(-10px) scale(0.97); }
+      100% { opacity: 1; transform: translateX(0) scale(1); }
+    }
+
+    .movie-item.new-item {
+      animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      header, .controls, .progress-bar-wrap, .list, .add-section { padding-left: 20px; padding-right: 20px; }
+      h1 { font-size: 38px; }
+      .stats { gap: 20px; }
+      .movie-item { padding: 14px 16px; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow">â¦ Jai's Server Â· #movie-list</p>
+  <h1>Movie <em>Night</em><br>Watchlist</h1>
+  <p class="subtitle">
+    Click a movie to mark it as watched â Shared live
+    <span class="sync-status syncing" id="sync-status">connecting...</span>
+  </p>
+  <div class="stats">
+    <div class="stat">
+      <span class="stat-num" id="total-count">0</span>
+      <span class="stat-label">Total Films</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num" id="watched-count">0</span>
+      <span class="stat-label">Watched</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num" id="remaining-count">0</span>
+      <span class="stat-label">Remaining</span>
+    </div>
+  </div>
+</header>
+
+<div class="progress-bar-wrap">
+  <div class="progress-label">
+    <span>Progress</span>
+    <span id="progress-pct">0%</span>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="filter-btn active" data-filter="all">All</button>
+  <button class="filter-btn" data-filter="unwatched">Unwatched</button>
+  <button class="filter-btn" data-filter="watched">Watched</button>
+  <button class="filter-btn" data-filter="horror">ð® Horror</button>
+</div>
+
+<div class="section-divider"><hr/></div>
+
+<div class="list" id="movie-list">
+  <div class="loading-msg"><span class="spinner"></span>Loading movies from shared list...</div>
+</div>
+
+<div class="add-section">
+  <div class="add-form">
+    <input class="add-input" id="movie-input" type="text" placeholder="Add a movie title..." autocomplete="off"/>
+    <label class="horror-toggle" id="horror-label">
+      <input type="checkbox" id="horror-check"/> ð® Horror
+    </label>
+    <button class="add-btn" id="add-btn" onclick="addMovie()">+ Add</button>
+  </div>
+</div>
+
+<script>
+  // API endpoint â proxied through Vercel serverless function
+  // The actual Google Apps Script URL is stored as a Vercel env variable (API_URL)
+  const API_URL = "/api/movies";
+
+  const initialMovies = [
+    { title: "Night Crawler", horror: false, watched: false },
+    { title: "Shawshank Redemption", horror: false, watched: false },
+    { title: "Whiplash", horror: false, watched: false },
+    { title: "Happy Death Day", horror: true, watched: false },
+    { title: "Harry Potter", horror: false, watched: false },
+    { title: "Dune", horror: false, watched: false },
+    { title: "Zodiac", horror: false, watched: false },
+    { title: "Prisoners", horror: false, watched: false },
+    { title: "Sicario", horror: false, watched: false },
+    { title: "Marty Supereme", horror: false, watched: false },
+    { title: "The Martian", horror: false, watched: false },
+    { title: "Moneyball", horror: false, watched: false },
+    { title: "The Bride of Frankenstein 2026", horror: true, watched: false },
+    { title: "21", horror: false, watched: false },
+  ];
+
+  let movies = [];
+  let currentFilter = 'all';
+  let isLoading = true;
+
+  // --- Sync Status UI ---
+  function setSyncStatus(state, text) {
+    const el = document.getElementById('sync-status');
+    el.className = 'sync-status ' + state;
+    el.textContent = text || state;
+  }
+
+  // --- API Helpers ---
+  async function apiFetch() {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    if (data.status === "ok") return data.movies;
+    throw new Error(data.message || "Failed to fetch");
+  }
+
+  async function apiPost(body) {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }, // Apps Script needs text/plain to avoid CORS preflight
+      body: JSON.stringify(body),
+    });
+    return await res.json();
+  }
+
+  // --- Load movies from Google Sheets ---
+  async function loadMovies() {
+    try {
+      setSyncStatus("syncing", "syncing...");
+      const data = await apiFetch();
+
+      if (data.length === 0) {
+        // Sheet is empty â seed it with the initial movies
+        setSyncStatus("syncing", "seeding...");
+        await apiPost({ action: "sync", movies: initialMovies });
+        movies = [...initialMovies];
+      } else {
+        movies = data;
+      }
+
+      isLoading = false;
+      setSyncStatus("synced", "live");
+      render();
+    } catch (err) {
+      console.error("Load error:", err);
+      setSyncStatus("offline", "offline");
+      // Fall back to initial list so the page isn't empty
+      movies = [...initialMovies];
+      isLoading = false;
+      render();
+    }
+  }
+
+  // --- Render ---
+  function render() {
+    const list = document.getElementById('movie-list');
+    list.innerHTML = '';
+
+    movies.forEach((m, i) => {
+      const hide =
+        (currentFilter === 'watched' && !m.watched) ||
+        (currentFilter === 'unwatched' && m.watched) ||
+        (currentFilter === 'horror' && !m.horror);
+
+      const item = document.createElement('div');
+      item.className = 'movie-item' + (m.watched ? ' watched' : '') + (hide ? ' hidden' : '');
+      item.style.animationDelay = `${i * 0.04}s`;
+      item.onclick = () => toggle(i);
+
+      const watchedStr = m.watchedAt
+        ? new Date(m.watchedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : '';
+
+      item.innerHTML = `
+        <div class="checkbox">${m.watched ? 'â' : ''}</div>
+        <span class="movie-num">${String(i + 1).padStart(2, '0')}</span>
+        <span class="movie-title">${m.title}</span>
+        ${m.horror ? '<span class="tag tag-horror">Horror</span>' : ''}
+        <span class="watched-time">${watchedStr}</span>
+      `;
+      list.appendChild(item);
+    });
+
+    updateStats();
+  }
+
+  // --- Toggle watched ---
+  async function toggle(i) {
+    // Optimistic UI update
+    movies[i].watched = !movies[i].watched;
+    movies[i].watchedAt = movies[i].watched ? new Date().toISOString() : null;
+    render();
+
+    try {
+      setSyncStatus("syncing", "saving...");
+      await apiPost({ action: "toggle", index: i });
+      setSyncStatus("synced", "live");
+    } catch (err) {
+      console.error("Toggle error:", err);
+      setSyncStatus("offline", "offline");
+      // Revert on failure
+      movies[i].watched = !movies[i].watched;
+      movies[i].watchedAt = movies[i].watched ? new Date().toISOString() : null;
+      render();
+    }
+  }
+
+  // --- Stats ---
+  function updateStats() {
+    const total = movies.length;
+    const watched = movies.filter(m => m.watched).length;
+    const remaining = total - watched;
+    const pct = total ? Math.round((watched / total) * 100) : 0;
+
+    document.getElementById('total-count').textContent = total;
+    document.getElementById('watched-count').textContent = watched;
+    document.getElementById('remaining-count').textContent = remaining;
+    document.getElementById('progress-pct').textContent = pct + '%';
+    document.getElementById('progress-fill').style.width = pct + '%';
+  }
+
+  // --- Add movie ---
+  async function addMovie() {
+    const input = document.getElementById('movie-input');
+    const isHorror = document.getElementById('horror-check').checked;
+    const title = input.value.trim();
+    if (!title) return;
+
+    const btn = document.getElementById('add-btn');
+    btn.disabled = true;
+
+    // Optimistic UI
+    movies.push({ title, horror: isHorror, watched: false });
+    input.value = '';
+    document.getElementById('horror-check').checked = false;
+    document.getElementById('horror-label').classList.remove('active');
+
+    currentFilter = 'all';
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-filter="all"]').classList.add('active');
+    render();
+
+    // Animate new item
+    const items = document.querySelectorAll('.movie-item:not(.hidden)');
+    const last = items[items.length - 1];
+    if (last) {
+      last.classList.add('new-item');
+      last.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    try {
+      setSyncStatus("syncing", "saving...");
+      await apiPost({ action: "add", title, horror: isHorror });
+      setSyncStatus("synced", "live");
+    } catch (err) {
+      console.error("Add error:", err);
+      setSyncStatus("offline", "offline");
+    }
+
+    btn.disabled = false;
+  }
+
+  // --- Auto-refresh from sheet every 15 seconds ---
+  setInterval(async () => {
+    try {
+      const data = await apiFetch();
+      if (data && data.length > 0) {
+        movies = data;
+        render();
+        setSyncStatus("synced", "live");
+      }
+    } catch (e) {
+      // Silently fail on background poll
+    }
+  }, 15000);
+
+  // --- Event listeners ---
+  document.getElementById('horror-check').addEventListener('change', function() {
+    document.getElementById('horror-label').classList.toggle('active', this.checked);
+  });
+
+  document.getElementById('movie-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addMovie();
+  });
+
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      render();
+    });
+  });
+
+  // --- Init ---
+  loadMovies();
+</script>
+</body>
+</html>
