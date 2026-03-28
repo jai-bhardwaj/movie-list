@@ -31,8 +31,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!userId) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const role = await getMemberRole(params.id, userId);
-  const { action } = await req.json();
-  const body = await req.clone().json();
+  const body = await req.json();
+  const { action } = body;
 
   if (action === "add") {
     if (!can(role, "addMovie")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
